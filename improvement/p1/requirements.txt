@@ -6,3 +6,5 @@ seaborn
 scipy
 scikit-learn
 requests
+datasets
+transformers
