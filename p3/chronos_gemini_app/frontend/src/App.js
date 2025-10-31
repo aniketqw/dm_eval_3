@@ -1,13 +1,6 @@
-import React from 'react';
-import ChronosGeminiChat from './ChronosGeminiChat';
-import './index.css';  // Optional CSS
+import React from "react";
+import ChronosGeminiChat from "./ChronosGeminiChat";
 
-function App() {
-  return (
-    <div className="App">
-      <ChronosGeminiChat />
-    </div>
-  );
+export default function App() {
+  return <ChronosGeminiChat />;
 }
-
-export default App;

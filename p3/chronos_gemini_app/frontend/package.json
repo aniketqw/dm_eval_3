@@ -1,5 +1,5 @@
 {
-  "name": "chronos-gemini-frontend",
+  "name": "chronos-frontend",
   "version": "1.0.0",
   "private": true,
   "dependencies": {
@@ -14,9 +14,5 @@
   "devDependencies": {
     "react-scripts": "5.0.1"
   },
-  "browserslist": [
-    ">0.2%",
-    "not dead",
-    "not op_mini all"
-  ]
+  "browserslist": [">0.2%", "not dead", "not op_mini all"]
 }
