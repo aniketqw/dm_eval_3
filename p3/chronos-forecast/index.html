@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chronos AI Forecaster</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 { font-size: 28px; margin-bottom: 8px; }
+        .header p { opacity: 0.9; font-size: 14px; }
+        .content { padding: 30px; }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+        }
+        input[type="text"],
+        input[type="password"],
+        input[type="number"],
+        input[type="file"],
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border 0.3s;
+        }
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+            font-family: inherit;
+        }
+        button {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+        }
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        .result h3 {
+            color: #667eea;
+            margin-bottom: 12px;
+        }
+        .result pre {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #667eea;
+        }
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .error {
+            background: #fee;
+            border-left-color: #f44;
+            color: #c00;
+        }
+        .info-box {
+            background: #e3f2fd;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            color: #1565c0;
+            margin-bottom: 20px;
+        }
+        .data-preview {
+            background: white;
+            padding: 12px;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-size: 12px;
+            border: 1px solid #e0e0e0;
+        }
+        .forecast-numbers {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin: 15px 0;
+        }
+        .forecast-card {
+            background: white;
+            padding: 12px;
+            border-radius: 6px;
+            text-align: center;
+        }
+        .forecast-card .label {
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 4px;
+        }
+        .forecast-card .value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Chronos AI Forecaster</h1>
+            <p>Upload CSV data → Ask questions → Get AI-powered forecasts</p>
+        </div>
+        
+        <div class="content">
+            <div class="info-box">
+                💡 <strong>How it works:</strong> Upload your time series CSV, ask any question about future predictions, and get intelligent forecasts powered by Chronos + Gemini AI
+            </div>
+            
+            <form id="forecastForm">
+                <div class="form-group">
+                    <label>Gemini API Key</label>
+                    <input 
+                        type="password" 
+                        id="geminiKey" 
+                        placeholder="AIza..." 
+                        required
+                    >
+                    <small style="color: #666; font-size: 12px;">
+                        Get free key: <a href="https://makersuite.google.com/app/apikey" target="_blank">Google AI Studio</a>
+                    </small>
+                </div>
+                
+                <div class="form-group">
+                    <label>Upload CSV File</label>
+                    <input 
+                        type="file" 
+                        id="csvFile" 
+                        accept=".csv" 
+                        required
+                    >
+                    <small style="color: #666; font-size: 12px;">
+                        CSV with at least one numeric column (e.g., sales, temperature, stock price)
+                    </small>
+                </div>
+                
+                <div class="form-group">
+                    <label>Your Question</label>
+                    <textarea 
+                        id="question" 
+                        placeholder="e.g., What will sales look like next month? Should I expect growth?"
+                        required
+                    >What does the forecast show for the next period?</textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label>Forecast Horizon (days/periods)</label>
+                    <input 
+                        type="number" 
+                        id="predictionLength" 
+                        value="12" 
+                        min="1" 
+                        max="50"
+                    >
+                </div>
+                
+                <button type="submit" id="submitBtn">
+                    Generate Forecast & Analysis
+                </button>
+            </form>
+            
+            <div id="result"></div>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('forecastForm');
+        const resultDiv = document.getElementById('result');
+        const submitBtn = document.getElementById('submitBtn');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // Show loading
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Processing...';
+            resultDiv.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Running Chronos forecast and analyzing with Gemini AI...</p>
+                </div>
+            `;
+            
+            try {
+                // Prepare form data
+                const formData = new FormData();
+                formData.append('file', document.getElementById('csvFile').files[0]);
+                formData.append('question', document.getElementById('question').value);
+                formData.append('gemini_key', document.getElementById('geminiKey').value);
+                formData.append('prediction_length', document.getElementById('predictionLength').value);
+                
+                // Call backend
+                const response = await fetch('api/forecast', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Request failed');
+                }
+                
+                // Display results
+                displayResults(data);
+                
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="result error">
+                        <h3>❌ Error</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Generate Forecast & Analysis';
+            }
+        });
+
+        function displayResults(data) {
+            const { data_analysis, forecast, ai_answer } = data;
+            
+            resultDiv.innerHTML = `
+                <div class="result">
+                    <h3>📊 Dataset Analysis</h3>
+                    <div class="data-preview">
+                        <strong>Rows:</strong> ${data_analysis.rows}<br>
+                        <strong>Target Column:</strong> ${data_analysis.target_column}<br>
+                        <strong>Mean:</strong> ${data_analysis.target_stats.mean.toFixed(2)} | 
+                        <strong>Std:</strong> ${data_analysis.target_stats.std.toFixed(2)} | 
+                        <strong>Min:</strong> ${data_analysis.target_stats.min.toFixed(2)} | 
+                        <strong>Max:</strong> ${data_analysis.target_stats.max.toFixed(2)}
+                    </div>
+                </div>
+                
+                <div class="result">
+                    <h3>🔮 Chronos Forecast</h3>
+                    <div class="forecast-numbers">
+                        <div class="forecast-card">
+                            <div class="label">First Prediction</div>
+                            <div class="value">${forecast.median[0].toFixed(2)}</div>
+                        </div>
+                        <div class="forecast-card">
+                            <div class="label">Mid Prediction</div>
+                            <div class="value">${forecast.median[Math.floor(forecast.median.length/2)].toFixed(2)}</div>
+                        </div>
+                        <div class="forecast-card">
+                            <div class="label">Last Prediction</div>
+                            <div class="value">${forecast.median[forecast.median.length-1].toFixed(2)}</div>
+                        </div>
+                        <div class="forecast-card">
+                            <div class="label">Avg Forecast</div>
+                            <div class="value">${(forecast.median.reduce((a,b)=>a+b,0)/forecast.median.length).toFixed(2)}</div>
+                        </div>
+                    </div>
+                    <details>
+                        <summary style="cursor: pointer; color: #667eea;">View all predictions</summary>
+                        <pre>${JSON.stringify(forecast, null, 2)}</pre>
+                    </details>
+                </div>
+                
+                <div class="result">
+                    <h3>🤖 AI Analysis</h3>
+                    <div style="white-space: pre-wrap; line-height: 1.6;">${ai_answer}</div>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>
