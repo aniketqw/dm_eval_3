@@ -4,7 +4,6 @@ numpy==1.26.4
 pandas==2.2.2
 torch==2.4.1
 google-generativeai==0.8.1
-transformers==4.44.2
+transformers==4.49.0  # Compatible with Chronos v2.0.0
 scipy==1.14.1
-# Chronos v2.0.0 from GitHub (contains ChronosPipeline)
 git+https://github.com/amazon-science/chronos-forecasting.git@v2.0.0#egg=chronos-forecasting

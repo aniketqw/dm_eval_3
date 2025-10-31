@@ -2,7 +2,6 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-# Install git + build tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential gcc git && \
     rm -rf /var/lib/apt/lists/*
