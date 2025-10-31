@@ -1,5 +1,0 @@
-Dataset,Improvement,MAE,RMSE,MASE,MAPE
-Exchange-Rate (Exchange Rate (Finance-Simulated)),Adaptive Tokenization,-13.650021916843826,-14.022553918868336,-13.650021916843832,-13.469365851115528
-Traffic (Traffic (Transport-Simulated)),Adaptive Tokenization,-0.5045982038467416,-0.47544174927387467,-0.5045982038467403,-0.2663431300083891
-Electricity (Electricity (Energy-Simulated)),Context-Length Optimization,0.0,0.0,0.0,0.0
-Traffic (Traffic (Transport-Simulated)),Context-Length Optimization,0.0,0.0,0.0,0.0
