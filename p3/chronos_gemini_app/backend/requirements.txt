@@ -1,0 +1,10 @@
+flask==3.0.3
+flask-cors==4.0.1
+numpy==1.26.4
+pandas==2.2.2
+torch==2.4.1
+google-generativeai==0.8.1
+transformers==4.44.2
+scipy==1.14.1
+# Chronos v2.0.0 from GitHub (contains ChronosPipeline)
+git+https://github.com/amazon-science/chronos-forecasting.git@v2.0.0#egg=chronos-forecasting

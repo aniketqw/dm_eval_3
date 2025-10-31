@@ -1,0 +1,36 @@
+nohup: ignoring input
+`torch_dtype` is deprecated! Use `dtype` instead!
+Chronos Anomaly Detection – Real Electricity (GluonTS)
+======================================================================
+
+Step 1: Initializing Chronos model...
+Loading amazon/chronos-t5-base on cuda …
+Model loaded
+
+Step 2: Loading real electricity time series data...
+Loading real electricity data via GluonTS...
+Loaded 2500 points for household_1 – from 2012-01-01 00:00:00 to 2012-04-14 03:00:00
+
+Step 3: Running anomaly detection...
+
+Monitoring household_1 – 2500 hourly readings
+Progress: 0.0% - anomalies: 0
+Progress: 8.3% - anomalies: 24
+Progress: 16.6% - anomalies: 42
+Progress: 25.0% - anomalies: 74
+Progress: 33.3% - anomalies: 98
+Progress: 41.6% - anomalies: 119
+Progress: 49.9% - anomalies: 135
+Progress: 58.2% - anomalies: 156
+Progress: 66.6% - anomalies: 192
+Progress: 74.9% - anomalies: 213
+Progress: 83.2% - anomalies: 250
+Progress: 91.5% - anomalies: 277
+Progress: 99.8% - anomalies: 308
+Anomalies: 64 (critical 57)
+
+Step 4: Generating JSON report...
+Report → electricity_anomalies.json
+
+Step 5: Creating visualization chart...
+Visualization saved → anomalies_plot.png

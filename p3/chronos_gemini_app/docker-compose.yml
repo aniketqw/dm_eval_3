@@ -1,0 +1,29 @@
+version: "3.9"
+
+services:
+  backend:
+    image: chronos-backend
+    container_name: chronos-backend
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./backend/uploads:/app/uploads
+      - ./backend/results:/app/results
+    environment:
+      - FLASK_ENV=development
+    networks:
+      - appnet
+
+  frontend:
+    image: chronos-frontend
+    container_name: chronos-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - appnet
+
+networks:
+  appnet:
+    driver: bridge
