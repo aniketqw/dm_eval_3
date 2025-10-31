@@ -158,28 +158,35 @@ class ChronosAnomalyDetector:
 # 2. LOAD REAL DATA FROM HUGGING FACE
 # ----------------------------------------------------------------------
 def load_electricity_series(
-    household_id: str = "MAC000002",  # any id present in the dataset
-    max_points: int = 2000,            # keep demo fast
+    household_id: str = "MAC000002",  # Valid ID from the dataset
+    max_points: int = 2500,            # Keep it snappy
 ) -> pd.DataFrame:
     """
-    Returns a DataFrame with columns:
-        timestamp (datetime)
-        value     (float, kW)
+    Loads real hourly electricity loads from HF.
+    Returns: timestamp (datetime), load (float, kW)
     """
-    print(f"Downloading electricity dataset (household {household_id}) …")
-    ds = load_dataset("electricity", split="train")
+    print(f"Downloading electricity_load_diagrams (household {household_id}) …")
+    ds = load_dataset("electricity_load_diagrams", "uci", split="train")  # ← FIXED: config="uci"
 
-    # The dataset is a single table with columns: id, timestamp, value
-    df = ds.to_pandas()
-    series = df[df["id"] == household_id].copy()
-    series["timestamp"] = pd.to_datetime(series["timestamp"])
+    # Dataset structure: {'item_id': str, 'start_time': datetime, 'target': array of values}
+    df_list = []
+    for item in ds:
+        if item["item_id"] == household_id:  # Filter to one household
+            start_time = item["start_time"]
+            values = item["target"][:max_points]  # Limit to recent points
+            timestamps = pd.date_range(start=start_time, periods=len(values), freq="H")  # Hourly freq
+            df_temp = pd.DataFrame({"timestamp": timestamps, "load": values})
+            df_list.append(df_temp)
+            break  # Just one series
+
+    if not df_list:
+        raise ValueError(f"Household {household_id} not found. Try 'MAC000001' or check IDs.")
+
+    series = pd.concat(df_list)
     series = series.sort_values("timestamp").reset_index(drop=True)
 
-    # Take a recent slice (last `max_points` points)
-    series = series.iloc[-max_points:]
-
     print(f"Loaded {len(series)} points – from {series['timestamp'].iloc[0]} to {series['timestamp'].iloc[-1]}")
-    return series[["timestamp", "value"]].rename(columns={"value": "load"})
+    return series[["timestamp", "load"]]
 
 
 # ----------------------------------------------------------------------
