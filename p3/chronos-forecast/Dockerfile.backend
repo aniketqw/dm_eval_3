@@ -1,22 +1,42 @@
+# ---- Dockerfile.backend -------------------------------------------------
 FROM python:3.10-slim
 
 WORKDIR /app
 
-# Install system dependencies
+# System packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    git \
-    && rm -rf /var/lib/apt/lists/*
+    build-essential git && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements and install
+# Install PyTorch CPU
+RUN pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu \
+    torch==2.4.1 torchvision==0.19.1 torchaudio==2.4.1
+
+# Install deps
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application
+# Install Chronos
+RUN pip install --no-cache-dir git+https://github.com/amazon-science/chronos-forecasting.git
+
+# Copy app
 COPY app.py .
 
-# Expose port
-EXPOSE 5000
+# Force CPU + tiny model + DNS
+# Set model to tiny version for low memory usage
+ENV CHRONOS_MODEL=amazon/chronos-t5-tiny
+# Force CPU usage
+ENV TORCH_DEVICE=cpu
+# Enable unbuffered output
+ENV PYTHONUNBUFFERED=1
+# Clear HTTP proxy to avoid interference
+ENV HTTP_PROXY=""
+# Clear HTTPS proxy to avoid interference
+ENV HTTPS_PROXY=""
+# Exclude Hugging Face from proxy
+ENV NO_PROXY="huggingface.co"
 
-# Run
+EXPOSE 5000
 CMD ["python", "app.py"]
+# ------------------------------------------------------------------------
+
+

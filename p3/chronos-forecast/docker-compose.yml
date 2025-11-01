@@ -6,13 +6,14 @@ services:
       context: .
       dockerfile: Dockerfile.backend
     container_name: chronos-backend
-    ports:
-      - "5000:5000"
     environment:
       - PYTHONUNBUFFERED=1
     restart: unless-stopped
     networks:
       - chronos-net
+    # Expose port within the network (no host port mapping)
+    expose:
+      - "5000"
 
   frontend:
     build:
@@ -32,5 +33,4 @@ networks:
     driver: bridge
     ipam:
       config:
-        - subnet: 172.28.0.0/16
-        # docker-compose up -d
+        - subnet: 172.24.0.0/16
