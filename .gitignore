@@ -15,3 +15,6 @@ __pycache__/
 # VS Code
 .vscode/
 
+__pycache__/
+*.pyc
+*.pyo
