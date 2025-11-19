@@ -1,18 +1,8 @@
 improvement/venv
 
-# Large data files
-**/chronos_data/train/*.pkl
-**/chronos_data/train/timeseries.pkl
-*.pkl
-
-# Model checkpoints
-**/checkpoints/
+# Model checkpoints (excluding data files that will use LFS)
+**/checkpoints/*.pt
 **/test_checkpoints/
-
-# Other large files
-*.h5
-*.hdf5
-*.parquet
 
 # Python cache
 __pycache__/
