@@ -2,6 +2,7 @@
 
 import torch
 import json
+import os
 from pathlib import Path
 from huggingface_hub import HfApi, create_repo, upload_folder
 from transformers import T5ForConditionalGeneration
@@ -257,8 +258,16 @@ def main():
     
     args = parser.parse_args()
     
-    # Get token
-    token = args.token or os.environ.get('HF_TOKEN')
+    # Get token from multiple sources
+    token = args.token or os.environ.get('HF_TOKEN') or os.environ.get('HUGGING_FACE_HUB_TOKEN')
+    
+    # If still no token, try to read from HuggingFace CLI config
+    if not token:
+        try:
+            from huggingface_hub import HfFolder
+            token = HfFolder.get_token()
+        except:
+            pass
     
     if not token:
         print("\n⚠ No HuggingFace token provided!")
@@ -291,3 +300,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+#     python deploy_to_huggingface.py \
+#   --checkpoint ./checkpoints/epoch_8 \
+#   --repo phoenix21/distance-aware-chronos

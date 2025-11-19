@@ -6,6 +6,7 @@ import torch.nn.functional as F
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import json
 from typing import Optional, Tuple, List, Dict
 import warnings
 warnings.filterwarnings('ignore')
@@ -217,6 +218,38 @@ class DistanceAwareChronos(nn.Module):
         
         # Move to device
         self.to(device)
+    
+    @classmethod
+    def from_pretrained(cls, repo_id: str, device: str = None):
+        """Load model from HuggingFace Hub"""
+        from huggingface_hub import hf_hub_download
+        import tempfile
+        
+        if device is None:
+            device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        
+        print(f"Loading Distance-Aware Chronos from {repo_id}...")
+        
+        # Download config
+        config_path = hf_hub_download(repo_id=repo_id, filename="config.json")
+        with open(config_path, 'r') as f:
+            config = json.load(f)
+        
+        # Initialize model
+        model = cls(
+            model_name=config['base_model'],
+            num_bins=config['num_bins'],
+            device=device
+        )
+        
+        # Load trained distance output weights
+        distance_output_path = hf_hub_download(repo_id=repo_id, filename="distance_output.pt")
+        state_dict = torch.load(distance_output_path, map_location=device)
+        model.distance_output.load_state_dict(state_dict)
+        
+        print(f"✓ Loaded model (epoch {config['training_epoch']}, val_loss: {config['val_loss']:.4f})")
+        
+        return model
         
     def tokenize_time_series(self, time_series: np.ndarray) -> torch.Tensor:
         """Convert time series to tokens"""
