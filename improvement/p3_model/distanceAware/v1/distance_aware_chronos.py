@@ -327,40 +327,53 @@ class DistanceAwareChronos(nn.Module):
         horizon: int = 24,
         num_samples: int = 100
     ) -> np.ndarray:
-        """Generate predictions"""
+        """Generate predictions using the trained model"""
         self.eval()
         
         # Tokenize context
         scale = np.abs(context).mean() + 1e-10
         context_tokens = self.tokenize_time_series(context)
-        context_tokens = context_tokens.unsqueeze(0).to(self.device)
+        context_tokens = context_tokens.to(self.device)
         
+        # Generate predictions autoregressively
         predictions = []
         
         with torch.no_grad():
-            current_tokens = context_tokens
+            # Start with context
+            input_tokens = context_tokens.unsqueeze(0)  # [1, seq_len]
             
-            for _ in range(horizon):
-                # Get predictions
-                outputs = self.forward(current_tokens)
-                logits = outputs['logits']
+            for step in range(horizon):
+                # Forward pass
+                outputs = self.forward(
+                    input_ids=input_tokens,
+                    labels=None
+                )
                 
-                # Get probabilities for last position
-                last_logits = logits[:, -1, :]
-                probs = F.softmax(last_logits / self.temperature, dim=-1)
+                # Get logits for the last position
+                logits = outputs['logits'][:, -1, :]  # [1, num_bins]
+                probs = F.softmax(logits / self.temperature, dim=-1)
                 
-                # Sample multiple times
-                step_samples = []
-                for _ in range(num_samples // horizon):
-                    sampled_token = torch.multinomial(probs, 1)
-                    step_samples.append(sampled_token)
+                # Sample from the distribution
+                samples = []
+                for _ in range(min(num_samples, 20)):  # Limit samples per step
+                    sampled_bin = torch.multinomial(probs, 1).item()
+                    samples.append(sampled_bin)
                 
-                # Use mean of samples for next step
-                next_token = torch.stack(step_samples).float().mean().long()
-                current_tokens = torch.cat([current_tokens, next_token.unsqueeze(0)], dim=1)
+                # Use median of samples
+                next_bin = int(np.median(samples))
                 
-                # Store predictions
-                predictions.append(self.detokenize(next_token, scale))
+                # Detokenize to get value
+                bins = np.linspace(-15, 15, self.num_bins)
+                value = bins[next_bin] * scale
+                predictions.append(value)
+                
+                # Append to input for next step
+                next_token = torch.tensor([[next_bin]], dtype=torch.long, device=self.device)
+                input_tokens = torch.cat([input_tokens, next_token], dim=1)
+                
+                # Truncate if too long (keep last 512 tokens)
+                if input_tokens.shape[1] > 512:
+                    input_tokens = input_tokens[:, -512:]
         
         return np.array(predictions)
 

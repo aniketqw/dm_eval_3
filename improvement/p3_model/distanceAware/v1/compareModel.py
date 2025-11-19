@@ -69,11 +69,11 @@ class BenchmarkEvaluator:
     DATASETS = {
         'm4_quarterly': {'freq': 'Q', 'horizon': 8},
         'm4_yearly': {'freq': 'Y', 'horizon': 6},
-        'tourism_monthly': {'freq': 'M', 'horizon': 24},
-        'tourism_quarterly': {'freq': 'Q', 'horizon': 8},
-        'cif_2016': {'freq': 'M', 'horizon': 12},
-        'hospital': {'freq': 'M', 'horizon': 12},
-        'fred_md': {'freq': 'M', 'horizon': 12},
+        'monash_tourism_monthly': {'freq': 'M', 'horizon': 24},
+        'monash_tourism_quarterly': {'freq': 'Q', 'horizon': 8},
+        'monash_cif_2016': {'freq': 'M', 'horizon': 12},
+        'monash_hospital': {'freq': 'M', 'horizon': 12},
+        'monash_fred_md': {'freq': 'M', 'horizon': 12},
     }
     
     def __init__(self, da_model, orig_model, config: BenchmarkConfig):
@@ -160,12 +160,19 @@ class BenchmarkEvaluator:
         try:
             with torch.no_grad():
                 if is_da:
-                    return model.predict(context, horizon, self.config.num_samples)
+                    forecast = model.predict(context, horizon, self.config.num_samples)
+                    return forecast
                 else:
-                    context_tensor = torch.tensor(context, dtype=torch.float32).unsqueeze(0)
-                    samples = model.predict(context_tensor, horizon, self.config.num_samples)
-                    return np.median(samples.numpy()[0], axis=0)
-        except:
+                    # Original Chronos expects predictions through pipeline
+                    forecast = model.predict(
+                        context=torch.tensor(context[np.newaxis, :], dtype=torch.float32),
+                        prediction_length=horizon,
+                        num_samples=self.config.num_samples
+                    )
+                    # Take median across samples
+                    return np.median(forecast.cpu().numpy()[0], axis=0)
+        except Exception as e:
+            # Return NaN on error but don't print unless debugging
             return np.full(horizon, np.nan)
     
     def _compute_metrics(self, forecast: np.ndarray, truth: np.ndarray) -> Dict:
@@ -194,8 +201,18 @@ class ResultsAnalyzer:
         """Generate comparison report"""
         print(f"\n{'='*60}\nGenerating Report\n{'='*60}")
         
-        da_df = pd.DataFrame([r for r in results['da'] if not np.isnan(r['MAE'])])
-        orig_df = pd.DataFrame([r for r in results['orig'] if not np.isnan(r['MAE'])])
+        # Filter valid results and ensure proper DataFrame creation
+        da_valid = [r for r in results['da'] if isinstance(r, dict) and not np.isnan(r.get('MAE', np.nan))]
+        orig_valid = [r for r in results['orig'] if isinstance(r, dict) and not np.isnan(r.get('MAE', np.nan))]
+        
+        if not da_valid or not orig_valid:
+            print("⚠️ No valid results to analyze")
+            return pd.DataFrame()
+        
+        da_df = pd.DataFrame(da_valid)
+        orig_df = pd.DataFrame(orig_valid)
+        
+        print(f"Valid results: Distance-Aware={len(da_df)}, Original={len(orig_df)}")
         
         comparison = []
         for metric in ['MAE', 'RMSE', 'MAPE']:
@@ -230,8 +247,15 @@ class ResultsAnalyzer:
         """Create essential plots"""
         print("Creating visualizations...")
         
-        da_df = pd.DataFrame([r for r in results['da'] if not np.isnan(r['MAE'])])
-        orig_df = pd.DataFrame([r for r in results['orig'] if not np.isnan(r['MAE'])])
+        da_valid = [r for r in results['da'] if isinstance(r, dict) and not np.isnan(r.get('MAE', np.nan))]
+        orig_valid = [r for r in results['orig'] if isinstance(r, dict) and not np.isnan(r.get('MAE', np.nan))]
+        
+        if not da_valid or not orig_valid:
+            print("⚠️ No valid results for visualization")
+            return
+        
+        da_df = pd.DataFrame(da_valid)
+        orig_df = pd.DataFrame(orig_valid)
         
         fig, axes = plt.subplots(1, 2, figsize=(14, 5))
         
@@ -262,6 +286,7 @@ def main():
     # Configuration
     config = BenchmarkConfig(
         distance_aware_repo="Phoenix21/distance-aware-chronos",
+        original_repo="amazon/chronos-t5-small",
         max_series=500,
         num_samples=100
     )
