@@ -1,0 +1,46 @@
+{
+  "datasets": [
+    {
+      "name": "monash_australian_electricity",
+      "num_series": 5,
+      "num_observations": 1155264
+    },
+    {
+      "name": "monash_electricity_hourly",
+      "num_series": 321,
+      "num_observations": 8443584
+    },
+    {
+      "name": "monash_traffic",
+      "num_series": 862,
+      "num_observations": 15122928
+    },
+    {
+      "name": "monash_weather",
+      "num_series": 3010,
+      "num_observations": 43032000
+    },
+    {
+      "name": "m4_hourly",
+      "num_series": 414,
+      "num_observations": 373372
+    },
+    {
+      "name": "m4_daily",
+      "num_series": 4227,
+      "num_observations": 10023836
+    },
+    {
+      "name": "m4_weekly",
+      "num_series": 359,
+      "num_observations": 371579
+    },
+    {
+      "name": "m4_monthly",
+      "num_series": 48000,
+      "num_observations": 11246411
+    }
+  ],
+  "total_series": 57198,
+  "total_observations": 89768974
+}
