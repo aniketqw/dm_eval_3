@@ -1,0 +1,9 @@
+{
+  "total_points": 2404,
+  "anomalies_detected": 302,
+  "anomaly_rate": 0.12562396006655574,
+  "avg_severity": 3.5981874465942383,
+  "avg_confidence": 0.330199610332734,
+  "high_anomalies": 169,
+  "low_anomalies": 133
+}
