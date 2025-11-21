@@ -1,0 +1,304 @@
+================================================================================
+Distance-Aware Chronos Testing Suite
+Started: 2025-11-22 00:59:32
+================================================================================
+
+
+================================================================================
+Starting test suite...
+================================================================================
+
+
+################################################################################
+#                           COMPREHENSIVE TEST SUITE                           #
+#                  for Distance-Aware Chronos Implementation                   #
+################################################################################
+
+
+################################################################################
+# SECTION 1: Ordinal Structure Tests
+################################################################################
+
+================================================================================
+Testing Ordinal Structure: Wasserstein Loss
+================================================================================
+
+True bin: 50
+Testing predictions at different distances...
+
+  Predict bin 50 (distance= 0): Loss = 0.034228
+  Predict bin 51 (distance= 1): Loss = 0.335888
+  Predict bin 52 (distance= 2): Loss = 0.637548
+  Predict bin 55 (distance= 5): Loss = 1.542530
+  Predict bin 60 (distance=10): Loss = 3.050834
+  Predict bin 70 (distance=20): Loss = 6.067440
+  Predict bin 90 (distance=40): Loss = 12.100655
+
+--------------------------------------------------------------------------------
+Verification: Loss should increase with distance
+--------------------------------------------------------------------------------
+✅ PASS: Loss increases monotonically with distance
+
+================================================================================
+Testing Ordinal Structure: Label Smoothing Loss
+================================================================================
+
+True bin: 50
+Testing predictions at different distances...
+
+  Predict bin 50 (distance= 0): Loss = 6.015061
+  Predict bin 51 (distance= 1): Loss = 7.584777
+  Predict bin 52 (distance= 2): Loss = 9.464576
+  Predict bin 55 (distance= 5): Loss = 10.004470
+  Predict bin 60 (distance=10): Loss = 10.004485
+  Predict bin 70 (distance=20): Loss = 10.004485
+  Predict bin 90 (distance=40): Loss = 10.004485
+
+--------------------------------------------------------------------------------
+Verification: Loss should increase with distance
+--------------------------------------------------------------------------------
+✅ PASS: Loss increases monotonically with distance
+
+================================================================================
+Testing Ordinal Structure: Distance-Weighted Cross-Entropy
+================================================================================
+
+True bin: 50
+Testing predictions at different distances...
+
+  Predict bin 50 (distance= 0): Loss = 0.004485
+  Predict bin 51 (distance= 1): Loss = 10.004484
+  Predict bin 52 (distance= 2): Loss = 10.004484
+  Predict bin 55 (distance= 5): Loss = 10.004484
+  Predict bin 60 (distance=10): Loss = 10.004484
+  Predict bin 70 (distance=20): Loss = 10.004484
+  Predict bin 90 (distance=40): Loss = 10.004484
+
+--------------------------------------------------------------------------------
+Verification: Loss should increase with distance
+--------------------------------------------------------------------------------
+✅ PASS: Loss increases monotonically with distance
+
+################################################################################
+# SECTION 2: Metric Implementation Tests
+################################################################################
+
+================================================================================
+Testing MAE Implementation
+================================================================================
+
+Test 1: Uniform distribution over 100 bins
+--------------------------------------------------------------------------------
+Target bin: 50
+Expected predicted bin (uniform): 49.5
+MAE: 0.5000
+Expected MAE: 0.5000
+✅ PASS: MAE correctly uses expected value
+
+Test 2: Delta distribution (all mass at bin 30)
+--------------------------------------------------------------------------------
+Target bin: 50
+Predicted bin (delta at 30): 30
+MAE: 20.0000
+Expected MAE: 20
+✅ PASS: MAE correct for delta distribution
+
+Test 3: Bimodal distribution (50% at bin 20, 50% at bin 60)
+--------------------------------------------------------------------------------
+Target bin: 50
+Expected predicted bin: 40.0
+MAE: 10.0000
+Expected MAE: 10.0
+✅ PASS: MAE correct for bimodal distribution
+
+================================================================================
+Testing MAPE Implementation
+================================================================================
+
+Test 1: Non-zero target (bin 50)
+--------------------------------------------------------------------------------
+Target: 50, Predicted: 40
+MAPE: 20.00%
+Expected: 20.00%
+✅ PASS: MAPE correct for non-zero target
+
+Test 2: Zero target (bin 0) - Division by zero protection
+--------------------------------------------------------------------------------
+Target: 0, Predicted: 10
+MAPE: 99999997952.00%
+✅ PASS: No division by zero error
+⚠️  WARNING: MAPE explodes for near-zero targets!
+   Recommendation: Use MAE instead for ordinal data
+
+################################################################################
+# SECTION 3: Gradient Flow Tests
+################################################################################
+
+================================================================================
+Testing Gradient Flow: Wasserstein Loss
+================================================================================
+Setup: Predict bin 20 (wrong), True bin 50
+--------------------------------------------------------------------------------
+
+Loss value: 9.084048
+
+Gradient analysis:
+  Gradient at true bin (50):       -0.000411
+  Gradient at predicted bin (20):  +0.006831
+  Gradient at nearby true (49):    -0.000397
+  Gradient at nearby true (51):    -0.000397
+
+--------------------------------------------------------------------------------
+Verification:
+--------------------------------------------------------------------------------
+✅ PASS: No NaN/Inf in gradients
+✅ PASS: Gradient encourages moving toward true bin
+
+================================================================================
+Testing Gradient Flow: Label Smoothing Loss
+================================================================================
+Setup: Predict bin 20 (wrong), True bin 50
+--------------------------------------------------------------------------------
+
+Loss value: 10.004485
+
+Gradient analysis:
+  Gradient at true bin (50):       -0.398897
+  Gradient at predicted bin (20):  +0.995525
+  Gradient at nearby true (49):    -0.241926
+  Gradient at nearby true (51):    -0.241926
+
+--------------------------------------------------------------------------------
+Verification:
+--------------------------------------------------------------------------------
+✅ PASS: No NaN/Inf in gradients
+✅ PASS: Gradient encourages moving toward true bin
+
+================================================================================
+Testing Gradient Flow: Distance-Weighted Cross-Entropy
+================================================================================
+Setup: Predict bin 20 (wrong), True bin 50
+--------------------------------------------------------------------------------
+
+Loss value: 10.004484
+
+Gradient analysis:
+  Gradient at true bin (50):       -0.999955
+  Gradient at predicted bin (20):  +0.995525
+  Gradient at nearby true (49):    +0.000045
+  Gradient at nearby true (51):    +0.000045
+
+--------------------------------------------------------------------------------
+Verification:
+--------------------------------------------------------------------------------
+✅ PASS: No NaN/Inf in gradients
+✅ PASS: Gradient encourages moving toward true bin
+
+################################################################################
+# SECTION 4: Specific Property Tests
+################################################################################
+
+================================================================================
+Testing Label Smoothing Normalization
+================================================================================
+
+Testing with 10 random target bins
+--------------------------------------------------------------------------------
+Label sums (should all be 1.0):
+  Target bin 29: sum = 1.000000
+  Target bin 47: sum = 1.000000
+  Target bin 36: sum = 1.000000
+  Target bin 47: sum = 1.000000
+  Target bin 21: sum = 1.000000
+  Target bin 32: sum = 1.000000
+  Target bin 22: sum = 1.000000
+  Target bin 36: sum = 1.000000
+  Target bin 24: sum = 1.000000
+  Target bin 13: sum = 1.000000
+
+--------------------------------------------------------------------------------
+✅ PASS: All smooth labels sum to 1.0
+
+--------------------------------------------------------------------------------
+Checking peaks are at target bins:
+✅ PASS: All peaks at correct target bins
+
+================================================================================
+Testing Wasserstein Cumulative Distribution Property
+================================================================================
+
+Test: Translating distribution should give proportional distance
+--------------------------------------------------------------------------------
+Distance from bin 40 to 50: W1 = 3.030303
+Distance from bin 45 to 50: W1 = 1.515152
+Ratio: 2.00 (should be ~2.0)
+✅ PASS: Wasserstein distance scales correctly
+
+--------------------------------------------------------------------------------
+Test: Triangle inequality W(p1, p3) ≤ W(p1, p2) + W(p2, p3)
+--------------------------------------------------------------------------------
+W(40, 60) = 6.060606
+W(40, 50) + W(50, 60) = 7.575756
+✅ PASS: Triangle inequality holds
+
+################################################################################
+# SECTION 5: Integration Tests
+################################################################################
+
+================================================================================
+Integration Test: Overfitting on Single Batch
+================================================================================
+
+Training on single batch for 100 steps...
+Target bins: [20, 30, 40, 50]
+--------------------------------------------------------------------------------
+Step   0: Loss = 4.572611
+Step  20: Loss = 2.646123
+Step  40: Loss = 1.799178
+Step  60: Loss = 1.570452
+Step  80: Loss = 1.505644
+
+--------------------------------------------------------------------------------
+Initial loss: 4.572611
+Final loss:   1.479837
+Reduction:    3.092774
+⚠️  WARNING: Model did not overfit well
+   This might indicate implementation issues
+
+================================================================================
+                               FINAL TEST REPORT                                
+================================================================================
+
+Tests passed: 10/11 (90.9%)
+
+Test Name                                          Result    
+------------------------------------------------------------
+wasserstein_ordinal                                ✅ PASS    
+label_smoothing_ordinal                            ✅ PASS    
+weighted_ce_ordinal                                ✅ PASS    
+mae_correct                                        ✅ PASS    
+mape_correct                                       ✅ PASS    
+wasserstein_gradients                              ✅ PASS    
+label_smoothing_gradients                          ✅ PASS    
+weighted_ce_gradients                              ✅ PASS    
+label_smoothing_normalized                         ✅ PASS    
+wasserstein_cumulative                             ✅ PASS    
+integration_overfit                                ❌ FAIL    
+
+================================================================================
+Detailed results saved to: test_results.log
+================================================================================
+
+
+================================================================================
+RECOMMENDATIONS
+================================================================================
+
+⚠️  Some tests failed. Review the following:
+
+
+================================================================================
+Test suite completed successfully!
+Timestamp: 2025-11-22 00:59:34
+================================================================================
+
