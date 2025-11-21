@@ -1,0 +1,8 @@
+{
+  "model_type": "distance_aware_chronos",
+  "base_model": "amazon/chronos-t5-small",
+  "num_bins": 4096,
+  "training_epoch": 10,
+  "val_loss": 2.470318087331065,
+  "timestamp": "2025-11-21T04:18:03.413552"
+}

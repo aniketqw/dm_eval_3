@@ -1,0 +1,21 @@
+# Large checkpoint files (available on HuggingFace)
+*.pt
+checkpoint.pt
+model.safetensors
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Training logs
+*.log
+
+# Checkpoints directories
+checkpoints/
+checkpoints_v2/
+original_v1/checkpoints/
+improved_v2/checkpoints/
+
+# HuggingFace model files
+hf_model/base_model/
+hf_model/distance_output.pt

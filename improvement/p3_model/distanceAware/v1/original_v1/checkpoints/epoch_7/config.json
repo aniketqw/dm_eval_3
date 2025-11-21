@@ -1,0 +1,6 @@
+{
+  "epoch": 7,
+  "val_loss": 2.4880887274975545,
+  "num_bins": 4096,
+  "device": "cuda"
+}
