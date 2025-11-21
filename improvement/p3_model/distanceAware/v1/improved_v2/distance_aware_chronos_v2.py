@@ -345,9 +345,10 @@ def train_improved_model(
     epochs: int = 10,
     batch_size: int = 8,
     learning_rate: float = 3e-4,
+    patience: int = 5,
     checkpoint_dir: str = "./checkpoints_v2"
 ):
-    """Train the improved distance-aware model"""
+    """Train the improved distance-aware model with early stopping"""
     import os
     from pathlib import Path
     from tqdm import tqdm
@@ -366,6 +367,7 @@ def train_improved_model(
     scheduler = CosineAnnealingWarmRestarts(optimizer, T_0=epochs//2, T_mult=2)
     
     best_val_loss = float('inf')
+    patience_counter = 0
     train_losses = []
     val_losses = []
     
@@ -462,10 +464,22 @@ def train_improved_model(
         
         print(f"Epoch {epoch+1}: Train Loss = {avg_train_loss:.4f}, Val Loss = {avg_val_loss:.4f}")
         
-        # Save checkpoint
+        # Save checkpoint at every epoch
         os.makedirs(checkpoint_dir, exist_ok=True)
+        epoch_checkpoint_path = os.path.join(checkpoint_dir, f"epoch_{epoch+1}_model.pt")
+        torch.save({
+            'epoch': epoch,
+            'model_state_dict': model.distance_output.state_dict(),
+            'optimizer_state_dict': optimizer.state_dict(),
+            'train_loss': avg_train_loss,
+            'val_loss': avg_val_loss,
+        }, epoch_checkpoint_path)
+        print(f"  ✓ Saved checkpoint: epoch_{epoch+1}_model.pt")
+        
+        # Save best model
         if avg_val_loss < best_val_loss:
             best_val_loss = avg_val_loss
+            patience_counter = 0
             checkpoint_path = os.path.join(checkpoint_dir, f"best_model.pt")
             torch.save({
                 'epoch': epoch,
@@ -474,6 +488,14 @@ def train_improved_model(
                 'train_loss': avg_train_loss,
                 'val_loss': avg_val_loss,
             }, checkpoint_path)
-            print(f"  ✓ Saved best model (val_loss: {avg_val_loss:.4f})")
+            print(f"  🏆 New best model! (val_loss: {avg_val_loss:.4f})")
+        else:
+            patience_counter += 1
+            print(f"  ⏳ No improvement. Patience: {patience_counter}/{patience}")
+            
+            if patience_counter >= patience:
+                print(f"\n⚠️  Early stopping triggered after {epoch+1} epochs!")
+                print(f"   Best validation loss: {best_val_loss:.4f}")
+                break
     
     return train_losses, val_losses

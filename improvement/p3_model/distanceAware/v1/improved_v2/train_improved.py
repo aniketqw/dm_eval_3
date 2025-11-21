@@ -55,9 +55,10 @@ def main():
         model=model,
         train_data=train_data,
         val_data=val_data,
-        epochs=15,  # More epochs for better convergence
+        epochs=20,  # More epochs with early stopping
         batch_size=8,
         learning_rate=3e-4,
+        patience=5,  # Early stopping patience
         checkpoint_dir="./checkpoints"
     )
     

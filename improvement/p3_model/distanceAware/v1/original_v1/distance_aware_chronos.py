@@ -39,24 +39,25 @@ class OrdinalLoss(nn.Module):
         return matrix
     
     def ordinal_cross_entropy(self, logits, targets):
-        """Cross-entropy with distance-based penalty"""
+        """Cross-entropy with differentiable distance penalty"""
         batch_size = logits.size(0)
         
-        # Standard cross-entropy
+        # Standard cross-entropy (teaches correctness)
         ce_loss = F.cross_entropy(logits, targets, reduction='none')
         
-        # Get predicted bins
-        predictions = torch.argmax(logits, dim=-1)
+        # Soft predictions (fully differentiable)
+        probs = F.softmax(logits, dim=-1)
         
-        # Calculate distance penalty
-        distances = torch.gather(
-            self.distance_matrix[predictions], 
-            1, 
-            targets.unsqueeze(1)
-        ).squeeze(1)
+        # Compute expected distance from target
+        bin_indices = torch.arange(self.num_bins, device=logits.device).float()
+        bin_indices = bin_indices.unsqueeze(0).expand(batch_size, -1)
         
-        # Distance-weighted loss
-        distance_penalty = torch.log(1 + distances) * self.alpha
+        target_indices = targets.unsqueeze(1).float()
+        distances = torch.abs(bin_indices - target_indices) / self.num_bins
+        
+        # Expected distance penalty: E[|pred - target|]
+        expected_distance = torch.sum(probs * distances, dim=1)
+        distance_penalty = torch.log1p(expected_distance) * self.alpha #log(1+ expected distance)
         
         total_loss = ce_loss + distance_penalty
         return total_loss.mean()

@@ -20,8 +20,8 @@ ordinal nature of quantized time series bins.
 
 **Base Model:** amazon/chronos-t5-small  
 **Number of Bins:** 4096  
-**Training Epoch:** 4  
-**Validation Loss:** 1.9132
+**Training Epoch:** 0  
+**Validation Loss:** 1.9125
 
 ## Key Features
 
@@ -40,7 +40,7 @@ from distance_aware_chronos import DistanceAwareChronos
 import numpy as np
 
 # Load model
-model = DistanceAwareChronos.from_pretrained("Phoenix21/distance-aware-chronos-t2")
+model = DistanceAwareChronos.from_pretrained("Phoenix21/distance-aware-chronos-t3")
 
 # Prepare your time series
 context = np.array([1.0, 2.0, 3.0, 4.0, 5.0])  # Your historical data
