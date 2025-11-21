@@ -21,7 +21,7 @@ warnings.filterwarnings('ignore')
 @dataclass
 class BenchmarkConfig:
     """Configuration for benchmark evaluation"""
-    distance_aware_repo: str = "Phoenix21/distance-aware-chronos"
+    distance_aware_repo: str = "Phoenix21/distance-aware-chronos-t"  # HuggingFace repo
     original_repo: str = "amazon/chronos-t5-small"
     output_dir: str = "./benchmark_results"
     max_series: int = 500
@@ -39,16 +39,43 @@ class ModelLoader:
         self.orig_model = None
     
     def load_models(self) -> Tuple[object, object]:
-        """Load both models from HuggingFace"""
+        """Load both models from HuggingFace or local checkpoint"""
         print(f"\n{'='*60}\nLoading Models (Device: {self.device})\n{'='*60}")
         
         # Load Distance-Aware model
-        print("1. Distance-Aware Chronos...")
+        print(f"1. Distance-Aware Chronos from {self.config.distance_aware_repo}...")
         from distance_aware_chronos import DistanceAwareChronos
-        self.da_model = DistanceAwareChronos.from_pretrained(
-            self.config.distance_aware_repo,
+        from huggingface_hub import hf_hub_download
+        import json
+        
+        # Download config and weights from HuggingFace
+        config_path = hf_hub_download(
+            repo_id=self.config.distance_aware_repo,
+            filename="config.json",
+            repo_type="model"
+        )
+        distance_output_path = hf_hub_download(
+            repo_id=self.config.distance_aware_repo,
+            filename="distance_output.pt",
+            repo_type="model"
+        )
+        
+        # Load config
+        with open(config_path, 'r') as f:
+            da_config = json.load(f)
+        
+        # Initialize model
+        self.da_model = DistanceAwareChronos(
+            model_name=da_config.get('base_model', 'amazon/chronos-t5-small'),
+            num_bins=da_config.get('num_bins', 4096),
             device=self.device
         )
+        
+        # Load trained distance output weights
+        state_dict = torch.load(distance_output_path, map_location=self.device)
+        self.da_model.distance_output.load_state_dict(state_dict)
+        
+        print(f"  ✓ Loaded (epoch {da_config.get('training_epoch', 'N/A')}, val_loss: {da_config.get('val_loss', 0):.4f})")
         
         # Load Original Chronos
         print("2. Original Chronos...")
@@ -163,10 +190,10 @@ class BenchmarkEvaluator:
                     forecast = model.predict(context, horizon, self.config.num_samples)
                     return forecast
                 else:
-                    # Original Chronos expects predictions through pipeline
+                    # Original Chronos expects tensor input directly
                     forecast = model.predict(
-                        context=torch.tensor(context[np.newaxis, :], dtype=torch.float32),
-                        prediction_length=horizon,
+                        torch.tensor(context[np.newaxis, :], dtype=torch.float32),
+                        horizon,
                         num_samples=self.config.num_samples
                     )
                     # Take median across samples
@@ -285,7 +312,7 @@ def main():
     """Main execution"""
     # Configuration
     config = BenchmarkConfig(
-        distance_aware_repo="Phoenix21/distance-aware-chronos",
+        distance_aware_repo="Phoenix21/distance-aware-chronos-t",  # HuggingFace model
         original_repo="amazon/chronos-t5-small",
         max_series=500,
         num_samples=100

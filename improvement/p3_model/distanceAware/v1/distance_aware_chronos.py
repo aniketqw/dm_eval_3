@@ -6,7 +6,6 @@ import torch.nn.functional as F
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import json
 from typing import Optional, Tuple, List, Dict
 import warnings
 warnings.filterwarnings('ignore')
@@ -218,38 +217,6 @@ class DistanceAwareChronos(nn.Module):
         
         # Move to device
         self.to(device)
-    
-    @classmethod
-    def from_pretrained(cls, repo_id: str, device: str = None):
-        """Load model from HuggingFace Hub"""
-        from huggingface_hub import hf_hub_download
-        import tempfile
-        
-        if device is None:
-            device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        
-        print(f"Loading Distance-Aware Chronos from {repo_id}...")
-        
-        # Download config
-        config_path = hf_hub_download(repo_id=repo_id, filename="config.json")
-        with open(config_path, 'r') as f:
-            config = json.load(f)
-        
-        # Initialize model
-        model = cls(
-            model_name=config['base_model'],
-            num_bins=config['num_bins'],
-            device=device
-        )
-        
-        # Load trained distance output weights
-        distance_output_path = hf_hub_download(repo_id=repo_id, filename="distance_output.pt")
-        state_dict = torch.load(distance_output_path, map_location=device)
-        model.distance_output.load_state_dict(state_dict)
-        
-        print(f"✓ Loaded model (epoch {config['training_epoch']}, val_loss: {config['val_loss']:.4f})")
-        
-        return model
         
     def tokenize_time_series(self, time_series: np.ndarray) -> torch.Tensor:
         """Convert time series to tokens"""
@@ -299,18 +266,10 @@ class DistanceAwareChronos(nn.Module):
             logits_flat = logits.view(-1, self.num_bins)
             labels_flat = labels.view(-1)
             
-            # Filter out padding tokens (marked as -100)
-            mask = labels_flat != -100
-            if mask.sum() == 0:
-                return {'loss': None, 'logits': logits, 'hidden_states': hidden_states}
-            
-            logits_masked = logits_flat[mask]
-            labels_masked = labels_flat[mask]
-            
             # Combine multiple losses
-            loss_ordinal = self.loss_fn.ordinal_cross_entropy(logits_masked, labels_masked)
-            loss_smooth = self.loss_fn.smooth_label_loss(logits_masked, labels_masked)
-            loss_emd = self.loss_fn.earth_movers_distance_loss(logits_masked, labels_masked)
+            loss_ordinal = self.loss_fn.ordinal_cross_entropy(logits_flat, labels_flat)
+            loss_smooth = self.loss_fn.smooth_label_loss(logits_flat, labels_flat)
+            loss_emd = self.loss_fn.earth_movers_distance_loss(logits_flat, labels_flat)
             
             # Weighted combination
             loss = 0.5 * loss_ordinal + 0.3 * loss_smooth + 0.2 * loss_emd
@@ -327,53 +286,43 @@ class DistanceAwareChronos(nn.Module):
         horizon: int = 24,
         num_samples: int = 100
     ) -> np.ndarray:
-        """Generate predictions using the trained model"""
+        """Generate predictions"""
         self.eval()
         
         # Tokenize context
         scale = np.abs(context).mean() + 1e-10
         context_tokens = self.tokenize_time_series(context)
-        context_tokens = context_tokens.to(self.device)
+        context_tokens = context_tokens.unsqueeze(0).to(self.device)
         
-        # Generate predictions autoregressively
         predictions = []
         
         with torch.no_grad():
-            # Start with context
-            input_tokens = context_tokens.unsqueeze(0)  # [1, seq_len]
+            current_tokens = context_tokens
             
-            for step in range(horizon):
-                # Forward pass
-                outputs = self.forward(
-                    input_ids=input_tokens,
-                    labels=None
-                )
+            for _ in range(horizon):
+                # Get predictions
+                outputs = self.forward(current_tokens)
+                logits = outputs['logits']
                 
-                # Get logits for the last position
-                logits = outputs['logits'][:, -1, :]  # [1, num_bins]
-                probs = F.softmax(logits / self.temperature, dim=-1)
+                # Get probabilities for last position
+                last_logits = logits[:, -1, :]
+                probs = F.softmax(last_logits / self.temperature, dim=-1)
                 
-                # Sample from the distribution
-                samples = []
-                for _ in range(min(num_samples, 20)):  # Limit samples per step
-                    sampled_bin = torch.multinomial(probs, 1).item()
-                    samples.append(sampled_bin)
+                # Sample multiple times
+                step_samples = []
+                for _ in range(max(1, num_samples // horizon)):
+                    sampled_token = torch.multinomial(probs, 1)
+                    step_samples.append(sampled_token.item())
                 
-                # Use median of samples
-                next_bin = int(np.median(samples))
+                # Use mean of samples for next step
+                next_token = int(np.mean(step_samples))
+                next_token_tensor = torch.tensor([[next_token]], dtype=torch.long, device=self.device)
+                current_tokens = torch.cat([current_tokens, next_token_tensor], dim=1)
                 
-                # Detokenize to get value
+                # Store predictions - detokenize the scalar token value
                 bins = np.linspace(-15, 15, self.num_bins)
-                value = bins[next_bin] * scale
-                predictions.append(value)
-                
-                # Append to input for next step
-                next_token = torch.tensor([[next_bin]], dtype=torch.long, device=self.device)
-                input_tokens = torch.cat([input_tokens, next_token], dim=1)
-                
-                # Truncate if too long (keep last 512 tokens)
-                if input_tokens.shape[1] > 512:
-                    input_tokens = input_tokens[:, -512:]
+                predicted_value = bins[next_token] * scale
+                predictions.append(predicted_value)
         
         return np.array(predictions)
 

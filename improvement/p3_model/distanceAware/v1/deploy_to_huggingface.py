@@ -301,5 +301,6 @@ def main():
 if __name__ == "__main__":
     main()
 #     python deploy_to_huggingface.py \
-#   --checkpoint ./checkpoints/epoch_8 \
+#   --checkpoint ./checkpoints/epoch_10 \
 #   --repo phoenix21/distance-aware-chronos
+

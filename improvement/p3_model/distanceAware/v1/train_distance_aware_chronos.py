@@ -11,6 +11,9 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 import os
 
+# Set CUDA memory allocation config to reduce fragmentation
+os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
+
 # Import from the distance_aware_chronos module
 from distance_aware_chronos import (
     DistanceAwareChronos,
@@ -218,8 +221,15 @@ class ChronosTrainer:
                 
                 pbar.set_postfix({'loss': f'{loss.item():.4f}'})
                 
+                # Clear CUDA cache periodically to prevent fragmentation
+                if i % 100 == 0:
+                    torch.cuda.empty_cache()
+                
             except Exception as e:
                 print(f"\nError in batch: {e}")
+                # Clear cache on error
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
                 continue
         
         avg_loss = total_loss / max(num_batches, 1)
@@ -253,6 +263,10 @@ class ChronosTrainer:
                     num_batches += 1
                     
                     pbar.set_postfix({'loss': f'{loss.item():.4f}'})
+                    
+                    # Clear CUDA cache periodically during validation
+                    if i % 50 == 0:
+                        torch.cuda.empty_cache()
                     
                 except Exception as e:
                     continue
@@ -402,7 +416,7 @@ def main():
         train_data=train_data,
         val_data=val_data,
         epochs=10,
-        batch_size=16,  # Adjust based on GPU memory
+        batch_size=8,  # Reduced to prevent OOM errors
         learning_rate=1e-4,
         save_every=2
     )
